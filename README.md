@@ -3,6 +3,8 @@
 This project uses an AppleScript handler to push iMessages from Mac OS X to Android using Google Cloud Messaging.
 It also includes a Node.js server that can send voice replies back to iMessage.
 
+![Hi Dave](https://lh3.googleusercontent.com/-o-CubQw11YU/VS68ZF4q7DI/AAAAAAAAuJ0/FDYfU41NTWE/w346-h425/IMG_20150415_104533700_HDR.jpg)
+
 ## Building and Configuration
 
 1. Create a Google API project on the Google Developers Console and enable the GCM service.  For more info, see the Getting Started on Android document: https://developer.android.com/google/gcm/gs.html
