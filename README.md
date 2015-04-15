@@ -10,7 +10,7 @@ It also includes a Node.js server that can send voice replies back to iMessage.
 1. Create a Google API project on the Google Developers Console and enable the GCM service.  For more info, see the Getting Started on Android document: https://developer.android.com/google/gcm/gs.html
 2. Open app/src/main/java/org/c99/wear_imessage/GCMIntentService.java and enter your GCM project ID number on line 46.  If you want to use the voice replies feature, set ENABLE_REPLIES on line 47 to true.
 3. run "./gradlew :assembleDebug" or build the app through Android Studio
-4. Install app/build/outputs/apk/app-debug.apk on your device and launch the app
+4. Install app/build/outputs/apk/app-debug.apk on your phone and launch the app
 5. Wait for the app to register for push notifications, then tap the "Copy GCM ID" button to copy your device ID to the clipboard
 6. Open GCM.applescript and enter your Google API key and GCM device ID on lines 2 and 3
 7. Copy GCM.applescript to the iMessage scripts folder (~/Library/Application Scripts/com.apple.iChat on Yosemite)
