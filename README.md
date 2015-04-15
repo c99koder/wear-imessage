@@ -14,7 +14,7 @@ It also includes a Node.js server that can send voice replies back to iMessage.
 7. Copy GCM.applescript to the iMessage scripts folder (~/Library/Application Scripts/com.apple.iChat on Yosemite)
 8. Open iMessage's preferences and select "GCM" as the Applescript handler
 
-* NOTE: Messages will only be forwarded in the background, if you have iMessage focused then the active conversation will not be forwarded *
+*NOTE: Messages will only be forwarded in the background, if you have iMessage focused then the active conversation will not be forwarded *
 
 ## Voice replies
 
