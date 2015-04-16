@@ -28,7 +28,6 @@ Sending voice replies from Wear to iMessage requires running a Node.js server on
 
 ## TODO
 
-* Store the received messages in a sqlite database and use a single Wear notification with a 2nd page to show the conversation history instead of grouping multiple notifications
 * Add an interface for replying from the Android phone too
 * Notify if a voice reply fails to send
 

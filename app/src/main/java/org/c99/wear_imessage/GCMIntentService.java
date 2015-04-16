@@ -34,8 +34,14 @@ import android.provider.ContactsContract;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.RemoteInput;
+import android.text.Html;
+import android.text.Spanned;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Date;
@@ -46,8 +52,34 @@ public class GCMIntentService extends IntentService {
     public static final String GCM_ID = "YOUR-GCM-ID-HERE";
     public static final boolean ENABLE_REPLIES = false;
 
+    private JSONObject conversations;
+
     public GCMIntentService() {
         super("GcmIntentService");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        try {
+            conversations = new JSONObject(getSharedPreferences("data", 0).getString("conversations", "{}"));
+        } catch (JSONException e) {
+            conversations = new JSONObject();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        save();
+    }
+
+    private void save() {
+        SharedPreferences.Editor e = getSharedPreferences("data", 0).edit();
+        e.putString("conversations", conversations.toString());
+        e.apply();
     }
 
     @Override
@@ -61,22 +93,67 @@ public class GCMIntentService extends IntentService {
                 if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
                 } else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
                 } else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
-                    NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
-                    style.bigText(intent.getStringExtra("msg"));
+                    int notificationId;
+                    JSONObject conversation;
+                    Spanned msg;
+                    int msg_count;
+
+                    try {
+                        String key = intent.getStringExtra("service") + ":" + intent.getStringExtra("handle");
+                        if(conversations.has(key)) {
+                            conversation = conversations.getJSONObject(key);
+                        } else {
+                            conversation = new JSONObject();
+                            conversations.put(key, conversation);
+
+                            long time = new Date().getTime();
+                            String tmpStr = String.valueOf(time);
+                            String last4Str = tmpStr.substring(tmpStr.length() - 5);
+                            conversation.put("notification_id", Integer.valueOf(last4Str));
+                            conversation.put("msgs", new JSONArray());
+                        }
+
+                        notificationId = conversation.getInt("notification_id");
+
+                        JSONArray msgs = conversation.getJSONArray("msgs");
+                        msgs.put(intent.getStringExtra("msg"));
+
+                        while(msgs.length() > 10) {
+                            msgs.remove(0);
+                        }
+
+                        save();
+
+                        String name = intent.getStringExtra("name");
+                        if(name.contains(" "))
+                            name = name.substring(0, name.indexOf(" "));
+
+                        StringBuilder sb = new StringBuilder();
+                        for(int i = 0; i < msgs.length(); i++) {
+                            if(sb.length() > 0)
+                                sb.append("<br/><br/>");
+
+                            sb.append("<b>").append(Html.escapeHtml(name)).append(":</b> ").append(Html.escapeHtml(msgs.getString(i)));
+                        }
+
+                        msg = Html.fromHtml(sb.toString());
+                        msg_count = msgs.length();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        return;
+                    }
 
                     NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                            .setTicker(intent.getStringExtra("name") + ": " + intent.getStringExtra("msg"))
+                            .setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))
                             .setSmallIcon(R.drawable.ic_notification)
                             .setDefaults(Notification.DEFAULT_ALL)
-                            .setGroup(intent.getStringExtra("handle"))
                             .setContentTitle(intent.getStringExtra("name"))
                             .setContentText(intent.getStringExtra("msg"))
-                            .setStyle(style);
+                            .setNumber(msg_count);
 
-                    long time = new Date().getTime();
-                    String tmpStr = String.valueOf(time);
-                    String last4Str = tmpStr.substring(tmpStr.length() - 5);
-                    int notificationId = Integer.valueOf(last4Str);
+                    NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
+                    style.bigText(intent.getStringExtra("msg"));
+                    builder.setStyle(style);
 
                     NotificationCompat.WearableExtender extender = new NotificationCompat.WearableExtender();
 
@@ -89,6 +166,9 @@ public class GCMIntentService extends IntentService {
                                 "Reply", replyPendingIntent)
                                 .addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
                     }
+
+                    if(msg_count > 1)
+                        extender.addPage(new NotificationCompat.Builder(getApplicationContext()).setContentText(msg).extend(new NotificationCompat.WearableExtender().setStartScrollBottom(true)).build());
 
                     Cursor c = null;
                     if(intent.getStringExtra("handle").contains("@"))
@@ -103,11 +183,10 @@ public class GCMIntentService extends IntentService {
                             builder.setLargeIcon(b);
                             extender.setBackground(b);
                         }
-
-                        NotificationManagerCompat m = NotificationManagerCompat.from(this.getApplicationContext());
-                        m.notify(notificationId, builder.extend(extender).build());
                     }
 
+                    NotificationManagerCompat m = NotificationManagerCompat.from(this.getApplicationContext());
+                    m.notify(notificationId, builder.extend(extender).build());
                 }
             }
             GCMBroadcastReceiver.completeWakefulIntent(intent);
