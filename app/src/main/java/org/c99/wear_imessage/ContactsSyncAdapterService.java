@@ -260,5 +260,7 @@ public class ContactsSyncAdapterService extends Service {
 			}
 		}
 		conn.disconnect();
+
+		mContentResolver.addPeriodicSync(account, authority, null, 60L * 60L);
 	}
 }
