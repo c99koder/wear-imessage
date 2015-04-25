@@ -28,7 +28,7 @@ Sending voice replies from Wear to iMessage requires running a Node.js server on
 
 ## TODO
 
-* Add an interface for replying from the Android phone too
+* Display thumbnails of recieved images
 * Notify if a voice reply fails to send
 
 # License
