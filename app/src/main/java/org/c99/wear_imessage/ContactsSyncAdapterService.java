@@ -42,7 +42,7 @@ public class ContactsSyncAdapterService extends Service {
 	public static String HandleColumn = RawContacts.SYNC1;
 	public static String ServiceColumn = RawContacts.SYNC2;
 	public static String ProtocolColumn = RawContacts.SYNC3;
-	private static Integer syncSchema = 3;
+	private static Integer syncSchema = 1;
 
 	public ContactsSyncAdapterService() {
 		super();
@@ -125,6 +125,13 @@ public class ContactsSyncAdapterService extends Service {
 			builder.withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE);
 			builder.withValue(ContactsContract.CommonDataKinds.Email.ADDRESS, handle);
 			builder.withValue(ContactsContract.CommonDataKinds.Email.TYPE, ContactsContract.CommonDataKinds.Email.TYPE_MOBILE);
+			operationList.add(builder.build());
+		} else {
+			builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI);
+			builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0);
+			builder.withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE);
+			builder.withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, handle);
+			builder.withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
 			operationList.add(builder.build());
 		}
 
