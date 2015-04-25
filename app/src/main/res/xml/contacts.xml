@@ -1,0 +1,8 @@
+<ContactsSource xmlns:android="http://schemas.android.com/apk/res/android">
+	<ContactsDataKind
+		android:icon="@mipmap/ic_launcher"
+		android:mimeType="vnd.android.cursor.item/vnd.org.c99.wear_imessage.profile"
+		android:summaryColumn="data4"
+		android:detailColumn="data5"
+		android:detailSocialSummary="true" />
+</ContactsSource>
