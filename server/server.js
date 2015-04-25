@@ -14,32 +14,57 @@
  * limitations under the License.
  */
 var osascript = require('node-osascript');
-var http = require('http');
-var url = require('url') ;
+var express = require('express');
+var app = express();
 
-http.createServer(function (req, res) {
-    var queryObject = url.parse(req.url,true).query;
-    if(queryObject != null && queryObject !== undefined && queryObject.handle !== undefined && queryObject.service !== undefined && queryObject.msg !== undefined) {
-        console.log("Sending message to " + queryObject.handle + " on service ID " + queryObject.service);
+app.get('/send', function (req, res) {
+    if(req.query.handle !== undefined && req.query.service !== undefined && req.query.msg !== undefined) {
+        console.log("Sending message to " + req.query.handle + " on service ID " + req.query.service);
         
         osascript.execute(
 'tell application "Messages"\n\
 	set targetService to 1st service whose id = theService\n\
 	set targetBuddy to buddy theHandle of targetService\n\
-	log targetBuddy\n\
 	send theMessage to targetBuddy\n\
-end tell', { theService:queryObject.service, theHandle:queryObject.handle, theMessage:queryObject.msg }, function(error, result, raw){
+end tell', { theService:req.query.service, theHandle:req.query.handle, theMessage:req.query.msg }, function(error, result, raw){
           if (error) {
               res.writeHead(500, {'Content-Type': 'text/plain'});
               res.end(error + "\n");
           } else {
               res.writeHead(200, {'Content-Type': 'text/plain'});
-              res.end('Message sent to ' + queryObject.handle + "\n");
+              res.end('OK\n");
           }
         });
     } else {
         res.writeHead(404, {'Content-Type': 'text/plain'});
         res.end('Missing parameters\n');
     }
-}).listen(1337);
+});
+
+app.get('/buddies', function (req, res) {
+        osascript.execute(
+'tell application "Messages"\n\
+    set theResult to "["\n\
+    repeat with theBuddy in buddies\n\
+        set theResult to theResult & "{"\n\
+        set theResult to theResult & "\\"name\\":\\"" & name of theBuddy & "\\","\n\
+        set theResult to theResult & "\\"service\\":\\"" & id of service of theBuddy & "\\","\n\
+        set theResult to theResult & "\\"service_type\\":\\"" & service type of service of theBuddy & "\\","\n\
+        set theResult to theResult & "\\"handle\\":\\"" & handle of theBuddy & "\\","\n\
+        set theResult to theResult & "\\"status\\":\\"" & status of theBuddy & "\\""\n\
+        set theResult to theResult & "}, "\n\
+    end repeat\n\
+    return (text 1 thru ((count of characters of theResult) - 2) of theResult) & "]"\n\
+end tell', { }, function(error, result, raw) {
+    if (error) {
+        res.writeHead(500, {'Content-Type': 'text/plain'});
+        res.end(error + "\n");
+    } else {
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end(result);
+    }
+        });
+});
+
+app.listen(1337);
 console.log('Server running on port 1337');

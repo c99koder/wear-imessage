@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Wear-iMessage</string>
-
     <string name="gcm_id">GCM ID:</string>
     <string name="host">Node.js Server:</string>
 </resources>

@@ -43,14 +43,12 @@ public class RemoteInputService extends IntentService {
             final String action = intent.getAction();
             if (ACTION_REPLY.equals(action)) {
                 Bundle remoteInput = RemoteInput.getResultsFromIntent(intent);
-                if (remoteInput != null) {
-
-
-                    String reply = remoteInput.getCharSequence("extra_reply").toString();
+                if (remoteInput != null || intent.hasExtra("msg")) {
+                    String reply = remoteInput != null?remoteInput.getCharSequence("extra_reply").toString():intent.getStringExtra("msg");
                     if (reply.length() > 0) {
                         URL url = null;
                         try {
-                            url = new URL("http://" + getSharedPreferences("prefs", 0).getString("host", "") + "?service=" + intent.getStringExtra("service") + "&handle=" + intent.getStringExtra("handle") + "&msg=" + URLEncoder.encode(reply, "UTF-8"));
+                            url = new URL("http://" + getSharedPreferences("prefs", 0).getString("host", "") + "/send?service=" + intent.getStringExtra("service") + "&handle=" + intent.getStringExtra("handle") + "&msg=" + URLEncoder.encode(reply, "UTF-8"));
                         } catch (Exception e) {
                             e.printStackTrace();
                             return;

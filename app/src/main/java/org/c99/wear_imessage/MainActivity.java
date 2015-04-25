@@ -16,8 +16,12 @@
 
 package org.c99.wear_imessage;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
+import android.content.ContentResolver;
 import android.content.SharedPreferences;
+import android.provider.ContactsContract;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -89,6 +93,15 @@ public class MainActivity extends ActionBarActivity {
 
         gcm_id.setText(getSharedPreferences("prefs", 0).getString("gcm_reg_id", ""));
         host.setText(getSharedPreferences("prefs", 0).getString("host", ""));
+
+        if(GCMIntentService.ENABLE_REPLIES) {
+            AccountManager am = AccountManager.get(this);
+            if (am.getAccountsByType("org.c99.wear_imessage.account").length == 0) {
+                Account account = new Account(getResources().getString(R.string.app_name), "org.c99.wear_imessage.account");
+                am.addAccountExplicitly(account, null, null);
+                ContentResolver.setSyncAutomatically(account, ContactsContract.AUTHORITY, true);
+            }
+        }
     }
 
     @Override

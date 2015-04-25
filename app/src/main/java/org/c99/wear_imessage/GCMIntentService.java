@@ -162,9 +162,13 @@ public class GCMIntentService extends IntentService {
                         replyIntent.putExtras(intent.getExtras());
                         replyIntent.putExtra("notification_id", notificationId);
                         PendingIntent replyPendingIntent = PendingIntent.getService(this, notificationId + 1, replyIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT);
-                        extender.addAction(new NotificationCompat.Action.Builder(R.drawable.ic_reply,
-                                "Reply", replyPendingIntent)
-                                .addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
+                        extender.addAction(new NotificationCompat.Action.Builder(R.drawable.ic_reply,"Reply", replyPendingIntent).addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
+
+                        Intent launchIntent = new Intent(this, QuickReplyActivity.class);
+                        launchIntent.putExtras(intent.getExtras());
+                        launchIntent.putExtra("notification_id", notificationId);
+                        builder.setContentIntent(PendingIntent.getActivity(this, notificationId + 2, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
+                        builder.addAction(R.drawable.ic_action_reply, "Reply", PendingIntent.getActivity(this, notificationId + 3, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
                     }
 
                     if(msg_count > 1)
@@ -212,7 +216,6 @@ public class GCMIntentService extends IntentService {
                         editor.putString("gcm_app_build", Build.FINGERPRINT);
                         editor.remove("gcm_registered");
                         editor.commit();
-                        editor.notifyAll();
                     } catch (IOException ex) {
                         ex.printStackTrace();
                         scheduleRegisterTimer(context, retrydelay * 2);
