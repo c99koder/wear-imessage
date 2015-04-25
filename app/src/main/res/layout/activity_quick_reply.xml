@@ -11,7 +11,8 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:id="@+id/contact">
 
         <ImageView
             android:layout_width="48dp"
@@ -44,6 +45,22 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/spinner" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/thumbnail"
+        android:scaleType="fitCenter"
+        android:layout_margin="6dp"
+        android:maxHeight="100dp"
+        android:layout_weight="0"
+        android:layout_gravity="center"
+        android:adjustViewBounds="true" />
 
     <LinearLayout
         android:orientation="horizontal"

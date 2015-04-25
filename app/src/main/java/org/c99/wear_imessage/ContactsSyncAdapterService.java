@@ -202,6 +202,11 @@ public class ContactsSyncAdapterService extends Service {
 		editor.putInt("sync_schema", syncSchema);
 		editor.commit();
 
+		if(is_full_sync)
+			android.util.Log.d("iMessage", "Starting full contacts sync");
+		else
+			android.util.Log.d("iMessage", "Starting contacts sync");
+
 		URL url = null;
 		try {
 			url = new URL("http://" + context.getSharedPreferences("prefs", 0).getString("host", "") + "/buddies");
@@ -210,6 +215,7 @@ public class ContactsSyncAdapterService extends Service {
 			return;
 		}
 		HttpURLConnection conn;
+		android.util.Log.d("iMessage", "Requesting: " + url);
 
 		try {
 			conn = (HttpURLConnection)url.openConnection(Proxy.NO_PROXY);
@@ -261,6 +267,7 @@ public class ContactsSyncAdapterService extends Service {
 		}
 		conn.disconnect();
 
-		mContentResolver.addPeriodicSync(account, authority, null, 60L * 60L);
+		android.util.Log.d("iMessage", "Sync completed");
+		mContentResolver.addPeriodicSync(account, authority, new Bundle(), 60L * 60L);
 	}
 }

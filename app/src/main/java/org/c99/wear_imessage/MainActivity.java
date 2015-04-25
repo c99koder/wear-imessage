@@ -97,6 +97,7 @@ public class MainActivity extends ActionBarActivity {
         if(GCMIntentService.ENABLE_REPLIES) {
             AccountManager am = AccountManager.get(this);
             if (am.getAccountsByType("org.c99.wear_imessage.account").length == 0) {
+                Log.e("iMessage", "Sync account not found, adding new one");
                 Account account = new Account(getResources().getString(R.string.app_name), "org.c99.wear_imessage.account");
                 am.addAccountExplicitly(account, null, null);
                 ContentResolver.setSyncAutomatically(account, ContactsContract.AUTHORITY, true);

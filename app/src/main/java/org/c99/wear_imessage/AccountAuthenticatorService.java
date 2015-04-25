@@ -67,6 +67,7 @@ public class AccountAuthenticatorService extends Service {
         @Override
         public Bundle addAccount(AccountAuthenticatorResponse response, String accountType, String authTokenType, String[] requiredFeatures, Bundle options)
                 throws NetworkErrorException {
+            Log.e(TAG, "Add account");
             return null;
         }
 
