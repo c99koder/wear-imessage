@@ -120,7 +120,7 @@ public class RemoteInputService extends IntentService {
                             http.setReadTimeout(60000);
                             http.setConnectTimeout(60000);
                             http.setDoOutput(true);
-                            http.setFixedLengthStreamingMode(total + (boundary.length() * 5) + filename.length() + type.length() + intent.getStringExtra("handle").length() + intent.getStringExtra("service").length() + reply.length() + 99 + 88 + 64);
+                            http.setFixedLengthStreamingMode(total + (boundary.length() * 5) + filename.length() + type.length() + intent.getStringExtra("handle").length() + intent.getStringExtra("service").length() + reply.length() + 251);
                             http.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
                             OutputStream out = http.getOutputStream();
@@ -132,7 +132,7 @@ public class RemoteInputService extends IntentService {
                             out.write((intent.getStringExtra("service") + "\r\n").getBytes());
                             out.write(("--" + boundary + "\r\n").getBytes());
                             out.write(("Content-Disposition: form-data; name=\"msg\"\r\n\r\n").getBytes());
-                            out.write((intent.getStringExtra("msg") + "\r\n").getBytes());
+                            out.write((reply + "\r\n").getBytes());
                             out.write(("--" + boundary + "\r\n").getBytes());
                             out.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n").getBytes());
                             out.write(("Content-Type: " + type + "\r\n\r\n").getBytes());

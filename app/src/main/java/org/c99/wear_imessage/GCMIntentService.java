@@ -84,9 +84,7 @@ public class GCMIntentService extends IntentService {
     }
 
     public static void notify(Context context, int notification_id, JSONArray msgs, Intent intent, boolean updateOnly) throws JSONException {
-        if(intent.getStringExtra("msg").length() == 0)
-            return;
-
+        String lastMsg = intent.getStringExtra("msg");
         Spanned msg;
         String name = intent.getStringExtra("name");
         if(name.contains(" "))
@@ -105,14 +103,18 @@ public class GCMIntentService extends IntentService {
                 if(o.has("type")) {
                     if (o.getString("type").equals("sent") || o.getString("type").equals("sent_file"))
                         from = "Me";
-                    if (o.getString("type").equals("file") || o.getString("type").equals("sent_file"))
+                    else if (o.getString("type").equals("file") || o.getString("type").equals("sent_file"))
                         body = "[File: " + o.getString("msg") + "]";
+                    else
+                        lastMsg = body;
                 } else {
                     from = name;
+                    lastMsg = body;
                 }
             } catch (JSONException e1) {
                 from = name;
                 body = msgs.getString(i);
+                lastMsg = body;
             }
 
             sb.append("<b>").append(Html.escapeHtml(from)).append(":</b> ").append(Html.escapeHtml(body));
@@ -124,13 +126,13 @@ public class GCMIntentService extends IntentService {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(intent.getStringExtra("name"))
-                .setContentText(intent.getStringExtra("msg"))
+                .setContentText(lastMsg)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setNumber(msg_count);
 
         if(!updateOnly) {
             builder.setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))
-                .setDefaults(Notification.DEFAULT_ALL);
+                    .setDefaults(Notification.DEFAULT_ALL);
         }
 
         NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();

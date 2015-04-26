@@ -185,8 +185,10 @@ public class QuickReplyActivity extends ActionBarActivity {
                 i.putExtra("msg", lastMsg);
                 i.putExtra("notification_id", getIntent().getIntExtra("notification_id", 0));
                 i.putExtra("reply", message.getText().toString());
-                if(attachment != null)
+                if(attachment != null) {
                     i.putExtra(Intent.EXTRA_STREAM, attachment);
+                    finish();
+                }
                 startService(i);
                 message.setText("");
             }
@@ -245,6 +247,7 @@ public class QuickReplyActivity extends ActionBarActivity {
         } else if(getIntent() != null && getIntent().hasExtra(Intent.EXTRA_STREAM)) {
             findViewById(R.id.contact).setVisibility(View.GONE);
             findViewById(R.id.spinner).setVisibility(View.VISIBLE);
+            findViewById(R.id.thumbnail).setVisibility(View.VISIBLE);
 
             Spinner s = (Spinner)findViewById(R.id.spinner);
             ArrayList<SyncEntry> contacts = new ArrayList();

@@ -69,15 +69,15 @@
 
     <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/thumbnail"
         android:scaleType="fitCenter"
         android:layout_margin="6dp"
         android:maxHeight="100dp"
-        android:layout_weight="0"
+        android:layout_weight="1"
         android:layout_gravity="center"
         android:adjustViewBounds="true"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
     <LinearLayout
         android:orientation="horizontal"
