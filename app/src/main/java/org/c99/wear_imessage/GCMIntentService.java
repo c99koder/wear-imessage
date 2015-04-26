@@ -139,7 +139,7 @@ public class GCMIntentService extends IntentService {
         }
 
         NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
-        style.bigText(intent.getStringExtra("msg"));
+        style.bigText(lastMsg);
         builder.setStyle(style);
 
         NotificationCompat.WearableExtender extender = new NotificationCompat.WearableExtender();
