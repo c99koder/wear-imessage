@@ -123,12 +123,15 @@ public class GCMIntentService extends IntentService {
         msg = Html.fromHtml(sb.toString());
         int msg_count = msgs.length();
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(intent.getStringExtra("name"))
-                .setContentText(lastMsg)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setNumber(msg_count);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+
+        if(name.length() > 0) {
+            builder.setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(intent.getStringExtra("name"))
+                    .setContentText(lastMsg)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setNumber(msg_count);
+        }
 
         if(!updateOnly) {
             builder.setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))

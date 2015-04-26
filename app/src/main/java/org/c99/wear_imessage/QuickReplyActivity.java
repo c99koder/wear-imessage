@@ -37,7 +37,6 @@ public class QuickReplyActivity extends ActionBarActivity {
     String service;
     String protocol;
     String name = "";
-    String lastMsg;
     Uri attachment;
 
     private class MessagesAdapter extends BaseAdapter {
@@ -64,16 +63,6 @@ public class QuickReplyActivity extends ActionBarActivity {
                     conversation = conversations.getJSONObject(key);
 
                     msgs = conversation.getJSONArray("msgs");
-
-                    for(int i = 0; i < msgs.length(); i++) {
-                        try {
-                            JSONObject o = msgs.getJSONObject(i);
-                            if(!o.has("type") || o.getString("type").equals("msg"))
-                                lastMsg = o.getString("msg");
-                        } catch (JSONException e) {
-                            lastMsg = msgs.getString(i);
-                        }
-                    }
                 }
             } catch (JSONException e) {
                 msgs = new JSONArray();
@@ -182,7 +171,6 @@ public class QuickReplyActivity extends ActionBarActivity {
                 i.putExtra("handle", handle);
                 i.putExtra("service", service);
                 i.putExtra("name", name);
-                i.putExtra("msg", lastMsg);
                 i.putExtra("notification_id", getIntent().getIntExtra("notification_id", 0));
                 i.putExtra("reply", message.getText().toString());
                 if(attachment != null) {
@@ -197,7 +185,6 @@ public class QuickReplyActivity extends ActionBarActivity {
         if(getIntent().hasExtra("handle") && getIntent().hasExtra("service")) {
             handle = getIntent().getStringExtra("handle");
             service = getIntent().getStringExtra("service");
-            lastMsg = getIntent().getStringExtra("msg");
 
             Cursor c = getContentResolver().query(
                     ContactsContract.RawContacts.CONTENT_URI,
