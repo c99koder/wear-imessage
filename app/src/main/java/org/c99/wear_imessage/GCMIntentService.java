@@ -149,6 +149,7 @@ public class GCMIntentService extends IntentService {
                             .setDefaults(Notification.DEFAULT_ALL)
                             .setContentTitle(intent.getStringExtra("name"))
                             .setContentText(intent.getStringExtra("msg"))
+                            .setPriority(NotificationCompat.PRIORITY_HIGH)
                             .setNumber(msg_count);
 
                     NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
@@ -161,13 +162,13 @@ public class GCMIntentService extends IntentService {
                         Intent replyIntent = new Intent(RemoteInputService.ACTION_REPLY);
                         replyIntent.putExtras(intent.getExtras());
                         replyIntent.putExtra("notification_id", notificationId);
-                        PendingIntent replyPendingIntent = PendingIntent.getService(this, notificationId + 1, replyIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT);
+                        PendingIntent replyPendingIntent = PendingIntent.getService(this, notificationId + 1, replyIntent, PendingIntent.FLAG_CANCEL_CURRENT);
                         extender.addAction(new NotificationCompat.Action.Builder(R.drawable.ic_reply,"Reply", replyPendingIntent).addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
 
                         Intent launchIntent = new Intent(this, QuickReplyActivity.class);
                         launchIntent.putExtras(intent.getExtras());
                         launchIntent.putExtra("notification_id", notificationId);
-                        builder.setContentIntent(PendingIntent.getActivity(this, notificationId + 2, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
+                        builder.setContentIntent(PendingIntent.getActivity(this, notificationId + 2, launchIntent, PendingIntent.FLAG_CANCEL_CURRENT));
                         builder.addAction(R.drawable.ic_action_reply, "Reply", PendingIntent.getActivity(this, notificationId + 3, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
                     }
 

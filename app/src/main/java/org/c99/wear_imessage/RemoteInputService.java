@@ -201,7 +201,6 @@ public class RemoteInputService extends IntentService {
                         }
                         conn.disconnect();
                     }
-                    NotificationManagerCompat.from(this.getApplicationContext()).cancel(intent.getIntExtra("notification_id", 0));
                 }
             }
         }
