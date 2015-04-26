@@ -14,44 +14,62 @@
  * limitations under the License.
  *)
 
-on push(theService, theHandle, theFullName, theMessage)
+on push(theService, theHandle, theFullName, theMessage, theType)
 	set API_KEY to "YOUR-API-KEY-HERE"
 	set REG_ID to "YOUR-GCM-ID-HERE"
 	
-	do shell script "curl --header \"Authorization: key=" & API_KEY & "\" -F registration_id=" & REG_ID & " -F data.service=" & quoted form of theService & " -F data.handle=" & quoted form of theHandle & " -F data.name=" & quoted form of theFullName & " -F data.msg=" & quoted form of theMessage & " https://android.googleapis.com/gcm/send"
+	do shell script "curl --header \"Authorization: key=" & API_KEY & "\" -F registration_id=" & REG_ID & " -F data.service=" & quoted form of theService & " -F data.handle=" & quoted form of theHandle & " -F data.name=" & quoted form of theFullName & " -F data.msg=" & quoted form of theMessage & " -F data.type=" & quoted form of theType & " https://android.googleapis.com/gcm/send"
 	return
 end push
 
 using terms from application "Messages"
 	on message received theMessage from theBuddy for theChat
-		my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage)
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
 	end message received
 	
 	on chat room message received theMessage from theBuddy for theChat
-		my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage)
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
 	end chat room message received
 	
 	on addressed chat room message received theMessage from theBuddy for theChat
-		my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage)
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
 	end addressed chat room message received
 	
 	on addressed message received theMessage from theBuddy for theChat
-		my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage)
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
 	end addressed message received
 	
-	# The following are unused but need to be defined to avoid an error
-	
-	on active chat message received theMessage
-		
+	on active chat message received theMessage from theBuddy for theChat
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
 	end active chat message received
+	
+	on received text invitation theText from theBuddy for theChat
+		if contents of theMessage is not "" then
+			my push((id of service of theBuddy), (handle of theBuddy), (full name of theBuddy), theMessage, "msg")
+		end if
+	end received text invitation
+	
+	on completed file transfer theFile
+		if direction of theFile is incoming then
+			my push((id of service of buddy of theFile), (handle of buddy of theFile), (full name of buddy of theFile), (id of theFile), "file")
+		end if
+	end completed file transfer
+	
+	# The following are unused but need to be defined to avoid an error
 	
 	on message sent theMessage for theChat
 		
 	end message sent
-	
-	on received text invitation theText from theBuddy for theChat
-		
-	end received text invitation
 	
 	on received audio invitation theText from theBuddy for theChat
 		
@@ -100,9 +118,5 @@ using terms from application "Messages"
 	on buddy became unavailable theBuddy
 		
 	end buddy became unavailable
-	
-	on completed file transfer
-		
-	end completed file transfer
 	
 end using terms from

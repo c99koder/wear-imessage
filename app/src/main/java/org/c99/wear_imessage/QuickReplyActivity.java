@@ -1,7 +1,9 @@
 package org.c99.wear_imessage;
 
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -10,28 +12,138 @@ import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.QuickContactBadge;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
-
 
 public class QuickReplyActivity extends ActionBarActivity {
     String handle;
     String service;
     String protocol;
+    String name = "";
+    String lastMsg;
     Uri attachment;
+
+    private class MessagesAdapter extends BaseAdapter {
+        private class ViewHolder {
+            TextView sent;
+            TextView received;
+        }
+
+        private JSONArray msgs;
+
+        public void loadMessages(String service, String handle) {
+            JSONObject conversations;
+
+            try {
+                conversations = new JSONObject(getSharedPreferences("data", 0).getString("conversations", "{}"));
+            } catch (JSONException e) {
+                conversations = new JSONObject();
+            }
+
+            try {
+                JSONObject conversation;
+                String key = service + ":" + handle;
+                if (conversations.has(key)) {
+                    conversation = conversations.getJSONObject(key);
+
+                    msgs = conversation.getJSONArray("msgs");
+
+                    for(int i = 0; i < msgs.length(); i++) {
+                        try {
+                            JSONObject o = msgs.getJSONObject(i);
+                            if(!o.has("type") || o.getString("type").equals("msg"))
+                                lastMsg = o.getString("msg");
+                        } catch (JSONException e) {
+                            lastMsg = msgs.getString(i);
+                        }
+                    }
+                }
+            } catch (JSONException e) {
+                msgs = new JSONArray();
+            }
+
+            notifyDataSetChanged();
+        }
+
+        @Override
+        public int getCount() {
+            return msgs.length();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            try {
+                return msgs.get(i);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+       @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            View row = view;
+            ViewHolder holder;
+
+            if (row == null) {
+                LayoutInflater inflater = getLayoutInflater();
+                row = inflater.inflate(R.layout.row_msg, viewGroup, false);
+
+                holder = new ViewHolder();
+                holder.received = (TextView)row.findViewById(R.id.recv);
+                holder.sent = (TextView)row.findViewById(R.id.sent);
+
+                row.setTag(holder);
+            } else {
+                holder = (ViewHolder) row.getTag();
+            }
+
+           try {
+               JSONObject msg = msgs.getJSONObject(i);
+               if(msg.has("type") && msg.getString("type").equals("sent")) {
+                   holder.received.setVisibility(View.GONE);
+                   holder.sent.setVisibility(View.VISIBLE);
+                   holder.sent.setText(msg.getString("msg"));
+               } else {
+                   holder.received.setVisibility(View.VISIBLE);
+                   holder.sent.setVisibility(View.GONE);
+                   holder.received.setText(msg.getString("msg"));
+               }
+           } catch (JSONException e) {
+               try {
+                   String msg = msgs.getString(i);
+                   holder.received.setVisibility(View.VISIBLE);
+                   holder.sent.setVisibility(View.GONE);
+                   holder.received.setText(msg);
+               } catch (JSONException e1) {
+                   e1.printStackTrace();
+               }
+           }
+            return row;
+        }
+    }
 
     private static class SyncEntry {
         public String handle;
@@ -42,6 +154,15 @@ public class QuickReplyActivity extends ActionBarActivity {
             return handle;
         }
     }
+
+    private MessagesAdapter adapter = new MessagesAdapter();
+
+    private SharedPreferences.OnSharedPreferenceChangeListener prefslistener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+            adapter.loadMessages(service, handle);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,19 +178,24 @@ public class QuickReplyActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
                 Intent i = new Intent(RemoteInputService.ACTION_REPLY);
+                i.setComponent(new ComponentName(getPackageName(), RemoteInputService.class.getName()));
                 i.putExtra("handle", handle);
                 i.putExtra("service", service);
-                i.putExtra("msg", message.getText().toString());
+                i.putExtra("name", name);
+                i.putExtra("msg", lastMsg);
+                i.putExtra("notification_id", getIntent().getIntExtra("notification_id", 0));
+                i.putExtra("reply", message.getText().toString());
                 if(attachment != null)
                     i.putExtra(Intent.EXTRA_STREAM, attachment);
                 startService(i);
-                finish();
+                message.setText("");
             }
         });
 
         if(getIntent().hasExtra("handle") && getIntent().hasExtra("service")) {
             handle = getIntent().getStringExtra("handle");
             service = getIntent().getStringExtra("service");
+            lastMsg = getIntent().getStringExtra("msg");
 
             Cursor c = getContentResolver().query(
                     ContactsContract.RawContacts.CONTENT_URI,
@@ -98,6 +224,11 @@ public class QuickReplyActivity extends ActionBarActivity {
             findViewById(R.id.contact).setVisibility(View.VISIBLE);
             findViewById(R.id.spinner).setVisibility(View.GONE);
 
+            adapter.loadMessages(service, handle);
+            ListView listView = (ListView) findViewById(R.id.conversation);
+            listView.setVisibility(View.VISIBLE);
+            listView.setAdapter(adapter);
+
             Bitmap b = BitmapFactory.decodeStream(ContactsContract.Contacts.openContactPhotoInputStream(getContentResolver(), contact, true));
             if (b != null) {
                 ImageView photo = (ImageView) findViewById(R.id.photo);
@@ -106,7 +237,8 @@ public class QuickReplyActivity extends ActionBarActivity {
 
             Cursor cursor = getContentResolver().query(contact, new String[]{ContactsContract.Contacts.DISPLAY_NAME}, null, null, null);
             if(cursor != null && cursor.moveToFirst()) {
-                ((TextView)findViewById(R.id.name)).setText(cursor.getString(0));
+                name = cursor.getString(0);
+                ((TextView)findViewById(R.id.name)).setText(name);
                 cursor.close();
             }
             ((TextView)findViewById(R.id.protocol)).setText(protocol);
@@ -174,5 +306,17 @@ public class QuickReplyActivity extends ActionBarActivity {
                 }
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getSharedPreferences("data", 0).registerOnSharedPreferenceChangeListener(prefslistener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        getSharedPreferences("data", 0).unregisterOnSharedPreferenceChangeListener(prefslistener);
     }
 }

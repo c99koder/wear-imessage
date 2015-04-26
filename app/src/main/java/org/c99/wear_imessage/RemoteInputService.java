@@ -18,6 +18,7 @@ package org.c99.wear_imessage;
 
 import android.app.IntentService;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +26,10 @@ import android.provider.OpenableColumns;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.RemoteInput;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -36,6 +41,7 @@ import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -51,9 +57,34 @@ public class RemoteInputService extends IntentService {
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_REPLY.equals(action)) {
+                JSONObject conversations = null, conversation = null;
+                try {
+                    conversations = new JSONObject(getSharedPreferences("data", 0).getString("conversations", "{}"));
+                } catch (JSONException e) {
+                    conversations = new JSONObject();
+                }
+
+                try {
+                    String key = intent.getStringExtra("service") + ":" + intent.getStringExtra("handle");
+                    if (conversations.has(key)) {
+                        conversation = conversations.getJSONObject(key);
+                    } else {
+                        conversation = new JSONObject();
+                        conversations.put(key, conversation);
+
+                        long time = new Date().getTime();
+                        String tmpStr = String.valueOf(time);
+                        String last4Str = tmpStr.substring(tmpStr.length() - 5);
+                        conversation.put("notification_id", Integer.valueOf(last4Str));
+                        conversation.put("msgs", new JSONArray());
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
                 Bundle remoteInput = RemoteInput.getResultsFromIntent(intent);
-                if (remoteInput != null || intent.hasExtra("msg")) {
-                    String reply = remoteInput != null?remoteInput.getCharSequence("extra_reply").toString():intent.getStringExtra("msg");
+                if (remoteInput != null || intent.hasExtra("reply")) {
+                    String reply = remoteInput != null?remoteInput.getCharSequence("extra_reply").toString():intent.getStringExtra("reply");
 
                     if(intent.hasExtra(Intent.EXTRA_STREAM)) {
                         NotificationCompat.Builder notification = new NotificationCompat.Builder(this)
@@ -132,6 +163,25 @@ public class RemoteInputService extends IntentService {
                                     sb.append(scanner.next());
                                 }
                                 android.util.Log.i("iMessage", "Upload result: " + sb.toString());
+                                try {
+                                    if(conversation != null) {
+                                        JSONArray msgs = conversation.getJSONArray("msgs");
+                                        JSONObject m = new JSONObject();
+                                        m.put("msg", filename);
+                                        m.put("service", intent.getStringExtra("service"));
+                                        m.put("handle", intent.getStringExtra("handle"));
+                                        m.put("type", "sent_file");
+                                        msgs.put(m);
+
+                                        while (msgs.length() > 10) {
+                                            msgs.remove(0);
+                                        }
+
+                                        GCMIntentService.notify(getApplicationContext(), intent.getIntExtra("notification_id", 0), msgs, intent, true);
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             } else {
                                 responseIn = http.getErrorStream();
                                 StringBuilder sb = new StringBuilder();
@@ -200,7 +250,29 @@ public class RemoteInputService extends IntentService {
                             }
                         }
                         conn.disconnect();
+                        try {
+                            if(conversation != null) {
+                                JSONArray msgs = conversation.getJSONArray("msgs");
+                                JSONObject m = new JSONObject();
+                                m.put("msg", reply);
+                                m.put("service", intent.getStringExtra("service"));
+                                m.put("handle", intent.getStringExtra("handle"));
+                                m.put("type", "sent");
+                                msgs.put(m);
+
+                                while (msgs.length() > 10) {
+                                    msgs.remove(0);
+                                }
+
+                                GCMIntentService.notify(getApplicationContext(), intent.getIntExtra("notification_id", 0), msgs, intent, true);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
+                    SharedPreferences.Editor e = getSharedPreferences("data", 0).edit();
+                    e.putString("conversations", conversations.toString());
+                    e.apply();
                 }
             }
         }

@@ -19,6 +19,7 @@ package org.c99.wear_imessage;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -82,6 +83,99 @@ public class GCMIntentService extends IntentService {
         e.apply();
     }
 
+    public static void notify(Context context, int notification_id, JSONArray msgs, Intent intent, boolean updateOnly) throws JSONException {
+        if(intent.getStringExtra("msg").length() == 0)
+            return;
+
+        Spanned msg;
+        String name = intent.getStringExtra("name");
+        if(name.contains(" "))
+            name = name.substring(0, name.indexOf(" "));
+
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < msgs.length(); i++) {
+            if(sb.length() > 0)
+                sb.append("<br/><br/>");
+            String body;
+            String from = name;
+
+            try {
+                JSONObject o = msgs.getJSONObject(i);
+                body = o.getString("msg");
+                if(o.has("type")) {
+                    if (o.getString("type").equals("sent") || o.getString("type").equals("sent_file"))
+                        from = "Me";
+                    if (o.getString("type").equals("file") || o.getString("type").equals("sent_file"))
+                        body = "[File: " + o.getString("msg") + "]";
+                } else {
+                    from = name;
+                }
+            } catch (JSONException e1) {
+                from = name;
+                body = msgs.getString(i);
+            }
+
+            sb.append("<b>").append(Html.escapeHtml(from)).append(":</b> ").append(Html.escapeHtml(body));
+        }
+
+        msg = Html.fromHtml(sb.toString());
+        int msg_count = msgs.length();
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(intent.getStringExtra("name"))
+                .setContentText(intent.getStringExtra("msg"))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setNumber(msg_count);
+
+        if(!updateOnly) {
+            builder.setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))
+                .setDefaults(Notification.DEFAULT_ALL);
+        }
+
+        NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
+        style.bigText(intent.getStringExtra("msg"));
+        builder.setStyle(style);
+
+        NotificationCompat.WearableExtender extender = new NotificationCompat.WearableExtender();
+
+        if(ENABLE_REPLIES) {
+            Intent replyIntent = new Intent(RemoteInputService.ACTION_REPLY);
+            replyIntent.setComponent(new ComponentName(context.getPackageName(), RemoteInputService.class.getName()));
+            replyIntent.putExtras(intent.getExtras());
+            replyIntent.putExtra("notification_id", notification_id);
+            PendingIntent replyPendingIntent = PendingIntent.getService(context, notification_id + 1, replyIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+            extender.addAction(new NotificationCompat.Action.Builder(R.drawable.ic_reply,"Reply", replyPendingIntent).addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
+
+            Intent launchIntent = new Intent(context, QuickReplyActivity.class);
+            launchIntent.putExtras(intent.getExtras());
+            launchIntent.putExtra("notification_id", notification_id);
+            builder.setContentIntent(PendingIntent.getActivity(context, notification_id + 2, launchIntent, PendingIntent.FLAG_CANCEL_CURRENT));
+            builder.addAction(R.drawable.ic_action_reply, "Reply", PendingIntent.getActivity(context, notification_id + 3, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
+        }
+
+        if(msg_count > 1)
+            extender.addPage(new NotificationCompat.Builder(context).setContentText(msg).extend(new NotificationCompat.WearableExtender().setStartScrollBottom(true)).build());
+
+        Cursor c = null;
+        if(intent.getStringExtra("handle").contains("@"))
+        c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI, new String[] {ContactsContract.Data.CONTACT_ID}, ContactsContract.CommonDataKinds.Email.ADDRESS + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?", new String[] {intent.getStringExtra("handle"), ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE}, null);
+
+        if(c != null && c.moveToFirst()) {
+            long contactId = c.getLong(0);
+            c.close();
+
+            Bitmap b = BitmapFactory.decodeStream(ContactsContract.Contacts.openContactPhotoInputStream(context.getContentResolver(), ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId), true));
+            if(b != null) {
+                builder.setLargeIcon(b);
+                extender.setBackground(b);
+            }
+        }
+
+        NotificationManagerCompat m = NotificationManagerCompat.from(context);
+        m.notify(notification_id, builder.extend(extender).build());
+    }
+
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
@@ -95,12 +189,10 @@ public class GCMIntentService extends IntentService {
                 } else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
                     int notificationId;
                     JSONObject conversation;
-                    Spanned msg;
-                    int msg_count;
 
                     try {
                         String key = intent.getStringExtra("service") + ":" + intent.getStringExtra("handle");
-                        if(conversations.has(key)) {
+                        if (conversations.has(key)) {
                             conversation = conversations.getJSONObject(key);
                         } else {
                             conversation = new JSONObject();
@@ -116,82 +208,23 @@ public class GCMIntentService extends IntentService {
                         notificationId = conversation.getInt("notification_id");
 
                         JSONArray msgs = conversation.getJSONArray("msgs");
-                        msgs.put(intent.getStringExtra("msg"));
+                        JSONObject m = new JSONObject();
+                        m.put("msg", intent.getStringExtra("msg"));
+                        m.put("service", intent.getStringExtra("service"));
+                        m.put("handle", intent.getStringExtra("handle"));
+                        m.put("type", intent.getStringExtra("type"));
+                        msgs.put(m);
 
-                        while(msgs.length() > 10) {
+                        while (msgs.length() > 10) {
                             msgs.remove(0);
                         }
 
                         save();
 
-                        String name = intent.getStringExtra("name");
-                        if(name.contains(" "))
-                            name = name.substring(0, name.indexOf(" "));
-
-                        StringBuilder sb = new StringBuilder();
-                        for(int i = 0; i < msgs.length(); i++) {
-                            if(sb.length() > 0)
-                                sb.append("<br/><br/>");
-
-                            sb.append("<b>").append(Html.escapeHtml(name)).append(":</b> ").append(Html.escapeHtml(msgs.getString(i)));
-                        }
-
-                        msg = Html.fromHtml(sb.toString());
-                        msg_count = msgs.length();
-                    } catch (JSONException e) {
+                        notify(getApplicationContext(), notificationId, msgs, intent, false);
+                    } catch (Exception e) {
                         e.printStackTrace();
-                        return;
                     }
-
-                    NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                            .setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))
-                            .setSmallIcon(R.drawable.ic_notification)
-                            .setDefaults(Notification.DEFAULT_ALL)
-                            .setContentTitle(intent.getStringExtra("name"))
-                            .setContentText(intent.getStringExtra("msg"))
-                            .setPriority(NotificationCompat.PRIORITY_HIGH)
-                            .setNumber(msg_count);
-
-                    NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle();
-                    style.bigText(intent.getStringExtra("msg"));
-                    builder.setStyle(style);
-
-                    NotificationCompat.WearableExtender extender = new NotificationCompat.WearableExtender();
-
-                    if(ENABLE_REPLIES) {
-                        Intent replyIntent = new Intent(RemoteInputService.ACTION_REPLY);
-                        replyIntent.putExtras(intent.getExtras());
-                        replyIntent.putExtra("notification_id", notificationId);
-                        PendingIntent replyPendingIntent = PendingIntent.getService(this, notificationId + 1, replyIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-                        extender.addAction(new NotificationCompat.Action.Builder(R.drawable.ic_reply,"Reply", replyPendingIntent).addRemoteInput(new RemoteInput.Builder("extra_reply").setLabel("Reply").build()).build());
-
-                        Intent launchIntent = new Intent(this, QuickReplyActivity.class);
-                        launchIntent.putExtras(intent.getExtras());
-                        launchIntent.putExtra("notification_id", notificationId);
-                        builder.setContentIntent(PendingIntent.getActivity(this, notificationId + 2, launchIntent, PendingIntent.FLAG_CANCEL_CURRENT));
-                        builder.addAction(R.drawable.ic_action_reply, "Reply", PendingIntent.getActivity(this, notificationId + 3, launchIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_CANCEL_CURRENT));
-                    }
-
-                    if(msg_count > 1)
-                        extender.addPage(new NotificationCompat.Builder(getApplicationContext()).setContentText(msg).extend(new NotificationCompat.WearableExtender().setStartScrollBottom(true)).build());
-
-                    Cursor c = null;
-                    if(intent.getStringExtra("handle").contains("@"))
-                        c = getContentResolver().query(ContactsContract.Data.CONTENT_URI, new String[] {ContactsContract.Data.CONTACT_ID}, ContactsContract.CommonDataKinds.Email.ADDRESS + "=?" + " AND " + ContactsContract.Data.MIMETYPE + "=?", new String[] {intent.getStringExtra("handle"), ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE}, null);
-
-                    if(c != null && c.moveToFirst()) {
-                        long contactId = c.getLong(0);
-                        c.close();
-
-                        Bitmap b = BitmapFactory.decodeStream(ContactsContract.Contacts.openContactPhotoInputStream(getContentResolver(), ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId), true));
-                        if(b != null) {
-                            builder.setLargeIcon(b);
-                            extender.setBackground(b);
-                        }
-                    }
-
-                    NotificationManagerCompat m = NotificationManagerCompat.from(this.getApplicationContext());
-                    m.notify(notificationId, builder.extend(extender).build());
                 }
             }
             GCMBroadcastReceiver.completeWakefulIntent(intent);
