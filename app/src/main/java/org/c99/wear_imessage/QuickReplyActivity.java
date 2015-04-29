@@ -45,7 +45,7 @@ public class QuickReplyActivity extends ActionBarActivity {
             TextView received;
         }
 
-        private JSONArray msgs;
+        private JSONArray msgs = new JSONArray();
 
         public void loadMessages(String service, String handle) {
             JSONObject conversations;
@@ -213,7 +213,6 @@ public class QuickReplyActivity extends ActionBarActivity {
             findViewById(R.id.contact).setVisibility(View.VISIBLE);
             findViewById(R.id.spinner).setVisibility(View.GONE);
 
-            adapter.loadMessages(service, handle);
             ListView listView = (ListView) findViewById(R.id.conversation);
             listView.setVisibility(View.VISIBLE);
             listView.setAdapter(adapter);
@@ -302,6 +301,7 @@ public class QuickReplyActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         getSharedPreferences("data", 0).registerOnSharedPreferenceChangeListener(prefslistener);
+        adapter.loadMessages(service, handle);
     }
 
     @Override
