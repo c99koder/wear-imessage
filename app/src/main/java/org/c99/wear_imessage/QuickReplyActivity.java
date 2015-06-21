@@ -155,14 +155,12 @@ public class QuickReplyActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Uri contact = null;
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quick_reply);
         getSupportActionBar().hide();
 
-        final EditText message = (EditText)findViewById(R.id.message);
-        ImageButton send = (ImageButton)findViewById(R.id.send);
+        final EditText message = (EditText) findViewById(R.id.message);
+        ImageButton send = (ImageButton) findViewById(R.id.send);
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -173,7 +171,7 @@ public class QuickReplyActivity extends ActionBarActivity {
                 i.putExtra("name", name);
                 i.putExtra("notification_id", getIntent().getIntExtra("notification_id", 0));
                 i.putExtra("reply", message.getText().toString());
-                if(attachment != null) {
+                if (attachment != null) {
                     i.putExtra(Intent.EXTRA_STREAM, attachment);
                     finish();
                 }
@@ -182,15 +180,23 @@ public class QuickReplyActivity extends ActionBarActivity {
             }
         });
 
-        if(getIntent().hasExtra("handle") && getIntent().hasExtra("service")) {
-            handle = getIntent().getStringExtra("handle");
-            service = getIntent().getStringExtra("service");
+        if(getIntent() != null)
+            onNewIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Uri contact = null;
+
+        if(intent.hasExtra("handle") && intent.hasExtra("service")) {
+            handle = intent.getStringExtra("handle");
+            service = intent.getStringExtra("service");
 
             Cursor c = getContentResolver().query(
                     ContactsContract.RawContacts.CONTENT_URI,
                     new String[] { ContactsContract.RawContacts.CONTACT_ID, ContactsSyncAdapterService.ProtocolColumn },
                     ContactsSyncAdapterService.HandleColumn + " = ? AND " + ContactsSyncAdapterService.ServiceColumn + " = ?",
-                    new String[] { getIntent().getStringExtra("handle"), getIntent().getStringExtra("service") },
+                    new String[] { intent.getStringExtra("handle"), intent.getStringExtra("service") },
                     null
                     );
             if(c != null && c.moveToFirst()) {
@@ -198,8 +204,8 @@ public class QuickReplyActivity extends ActionBarActivity {
                 protocol = c.getString(1);
                 c.close();
             }
-        } else if(getIntent() != null && getIntent().getData() != null) {
-            Cursor cursor = getContentResolver().query(getIntent().getData(), null, null, null, null);
+        } else if(intent.getData() != null) {
+            Cursor cursor = getContentResolver().query(intent.getData(), null, null, null, null);
             if(cursor != null && cursor.moveToFirst()) {
                 handle = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA1));
                 service = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA2));
@@ -230,13 +236,13 @@ public class QuickReplyActivity extends ActionBarActivity {
                 cursor.close();
             }
             ((TextView)findViewById(R.id.protocol)).setText(protocol);
-        } else if(getIntent() != null && getIntent().hasExtra(Intent.EXTRA_STREAM)) {
+        } else if(intent.hasExtra(Intent.EXTRA_STREAM)) {
             findViewById(R.id.contact).setVisibility(View.GONE);
             findViewById(R.id.spinner).setVisibility(View.VISIBLE);
             findViewById(R.id.thumbnail).setVisibility(View.VISIBLE);
 
             Spinner s = (Spinner)findViewById(R.id.spinner);
-            ArrayList<SyncEntry> contacts = new ArrayList();
+            ArrayList<SyncEntry> contacts = new ArrayList<>();
             Uri rawContactUri = ContactsContract.RawContacts.CONTENT_URI.buildUpon().appendQueryParameter(ContactsContract.RawContacts.ACCOUNT_NAME, getResources().getString(R.string.app_name)).appendQueryParameter(
                     ContactsContract.RawContacts.ACCOUNT_TYPE, "org.c99.wear_imessage.account").build();
             Cursor c1 = getContentResolver().query(rawContactUri, new String[]{BaseColumns._ID, ContactsSyncAdapterService.HandleColumn, ContactsSyncAdapterService.ServiceColumn}, null, null, null);
@@ -264,7 +270,7 @@ public class QuickReplyActivity extends ActionBarActivity {
                 }
             });
 
-            attachment = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+            attachment = intent.getParcelableExtra(Intent.EXTRA_STREAM);
             String type = getContentResolver().getType(attachment);
             if(type.startsWith("image/")) {
                 try {
