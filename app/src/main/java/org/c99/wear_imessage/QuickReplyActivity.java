@@ -10,8 +10,10 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.provider.ContactsContract;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.NotificationCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -189,6 +191,9 @@ public class QuickReplyActivity extends ActionBarActivity {
     protected void onNewIntent(Intent intent) {
         Uri contact = null;
 
+        if(intent.hasExtra("notification_id"))
+            NotificationManagerCompat.from(this).cancel(intent.getIntExtra("notification_id", 0));
+        
         if(intent.hasExtra("handle") && intent.hasExtra("service")) {
             handle = intent.getStringExtra("handle");
             service = intent.getStringExtra("service");
@@ -302,6 +307,7 @@ public class QuickReplyActivity extends ActionBarActivity {
                 }
             }
         }
+        setIntent(intent);
     }
 
     @Override
