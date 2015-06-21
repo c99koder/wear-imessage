@@ -125,6 +125,7 @@ public class GCMIntentService extends IntentService {
         int msg_count = msgs.length();
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+        builder.setAutoCancel(true);
 
         if(name.length() > 0) {
             builder.setSmallIcon(R.drawable.ic_notification)

@@ -157,7 +157,8 @@ public class QuickReplyActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quick_reply);
-        getSupportActionBar().hide();
+        if(getSupportActionBar() != null)
+            getSupportActionBar().hide();
 
         final EditText message = (EditText) findViewById(R.id.message);
         ImageButton send = (ImageButton) findViewById(R.id.send);
