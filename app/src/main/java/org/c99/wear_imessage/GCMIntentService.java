@@ -101,10 +101,11 @@ public class GCMIntentService extends IntentService {
                 JSONObject o = msgs.getJSONObject(i);
                 body = o.getString("msg");
                 if(o.has("type")) {
+                    if (o.getString("type").equals("file") || o.getString("type").equals("sent_file"))
+                        body = "[File: " + o.getString("msg") + "]";
+
                     if (o.getString("type").equals("sent") || o.getString("type").equals("sent_file"))
                         from = "Me";
-                    else if (o.getString("type").equals("file") || o.getString("type").equals("sent_file"))
-                        body = "[File: " + o.getString("msg") + "]";
                     else
                         lastMsg = body;
                 } else {
@@ -129,11 +130,13 @@ public class GCMIntentService extends IntentService {
             builder.setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(intent.getStringExtra("name"))
                     .setContentText(lastMsg)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setNumber(msg_count);
         }
 
-        if(!updateOnly) {
+        if(updateOnly) {
+            builder.setVibrate(null);
+        } else {
+            builder.setPriority(NotificationCompat.PRIORITY_HIGH);
             builder.setTicker(Html.fromHtml("<b>" + Html.escapeHtml(intent.getStringExtra("name")) + ":</b> " + Html.escapeHtml(intent.getStringExtra("msg"))))
                     .setDefaults(Notification.DEFAULT_ALL);
         }
@@ -197,6 +200,13 @@ public class GCMIntentService extends IntentService {
 
                     try {
                         String key = intent.getStringExtra("service") + ":" + intent.getStringExtra("handle");
+                        if(getSharedPreferences("data", 0).getString("lastMsg","").equals(key + ":" + intent.getStringExtra("msg")))
+                            return;
+
+                        SharedPreferences.Editor e = getSharedPreferences("data", 0).edit();
+                        e.putString("lastMsg", key + ":" + intent.getStringExtra("msg"));
+                        e.apply();
+
                         if (conversations.has(key)) {
                             conversation = conversations.getJSONObject(key);
                         } else {
